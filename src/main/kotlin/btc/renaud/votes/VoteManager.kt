@@ -17,23 +17,29 @@ object VoteManager {
 
     fun definition(id: String): VoteDefinitionEntry? = definitions[id.lowercase()]
 
-    fun vote(player: Player, definition: VoteDefinitionEntry, option: VoteOption) {
-        val artifact = definition.data.get() ?: return
+    fun vote(player: Player, definition: VoteDefinitionEntry, option: VoteOption): Boolean {
+        val artifact = definition.data.get() ?: return false
         if (definition.endDate.isNotBlank()) {
             runCatching { Instant.parse(definition.endDate) }.getOrNull()?.let {
-                if (Instant.now().isAfter(it)) return
+                if (Instant.now().isAfter(it)) {
+                    val msg = definition.closedMessage.get(player)
+                    if (!msg.isNullOrBlank()) {
+                        player.sendMessage(msg)
+                    }
+                    return false
+                }
             }
         }
         val data = artifact.loadDefinitionData(definition.id)
         val players = data.get("players")?.asJsonObject ?: JsonObject().also { data.add("players", it) }
         val uuid = player.uniqueId.toString()
-        if (players.has(uuid)) return
+        if (players.has(uuid)) return false
         val options = data.get("options")?.asJsonArray ?: JsonArray().also { data.add("options", it) }
         while (options.size() < definition.options.size) {
             options.add(0)
         }
         val index = option.index
-        if (index < 0 || index >= options.size()) return
+        if (index < 0 || index >= options.size()) return false
         val current = options[index].asInt
         options[index] = JsonPrimitive(current + 1)
         val total = data["total"]?.asInt ?: 0
@@ -41,6 +47,7 @@ object VoteManager {
         players.addProperty(uuid, index)
         // Persist the updated vote information for this definition
         artifact.saveDefinitionData(definition.id, data)
+        return true
     }
 
     fun hasVoted(player: Player, definition: VoteDefinitionEntry): Boolean {

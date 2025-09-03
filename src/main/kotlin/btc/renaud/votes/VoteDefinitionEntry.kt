@@ -23,6 +23,11 @@ class VoteDefinitionEntry(
     val options: List<Var<String>> = emptyList(),
     @Help("ISO-8601 formatted end date")
     val endDate: String = "",
+    @Placeholder
+    @Colored
+    @MultiLine
+    @Help("Message shown when voting is closed")
+    val closedMessage: Var<String> = ConstVar(""),
     @Help("Artifact storing vote data")
     val data: Ref<VoteDataEntry> = emptyRef(),
 ) : ManifestEntry {

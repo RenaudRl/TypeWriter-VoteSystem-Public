@@ -21,8 +21,9 @@ fun CommandTree.voteCommand() = literal("vote") {
                     sender.msg("You have already voted.")
                     return@executePlayerOrTarget
                 }
-                VoteManager.vote(voter, def, option)
-                sender.msg("Vote registered for option ${index + 1}.")
+                if (VoteManager.vote(voter, def, option)) {
+                    sender.msg("Vote registered for option ${index + 1}.")
+                }
             }
         }
     }
