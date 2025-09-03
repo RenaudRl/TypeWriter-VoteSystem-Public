@@ -4,11 +4,11 @@ import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref
 import com.typewritermc.core.entries.emptyRef
 import com.typewritermc.core.extension.annotations.*
-import com.typewritermc.engine.paper.entry.StaticEntry
+import com.typewritermc.engine.paper.entry.ManifestEntry
 import com.typewritermc.engine.paper.entry.entries.ConstVar
 import com.typewritermc.engine.paper.entry.entries.Var
 
-@Entry("vote_definition", "Vote Definition", Colors.YELLOW, "fa6-solid:check")
+@Entry("vote_definition", "Vote Definition", Colors.ORANGE, "fa6-solid:check")
 @Tags("vote_definition")
 class VoteDefinitionEntry(
     override val id: String = "",
@@ -25,7 +25,7 @@ class VoteDefinitionEntry(
     val endDate: String = "",
     @Help("Artifact storing vote data")
     val data: Ref<VoteDataEntry> = emptyRef(),
-) : StaticEntry {
+) : ManifestEntry {
     init {
         VoteManager.registerDefinition(this)
     }
