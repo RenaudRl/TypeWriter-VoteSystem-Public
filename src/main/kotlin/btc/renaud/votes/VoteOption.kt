@@ -27,3 +27,4 @@ enum class VoteOption(val index: Int) {
             values().take(definition.options.size)
     }
 }
+

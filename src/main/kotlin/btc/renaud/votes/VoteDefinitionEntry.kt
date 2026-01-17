@@ -35,3 +35,4 @@ class VoteDefinitionEntry(
         VoteManager.registerDefinition(this)
     }
 }
+

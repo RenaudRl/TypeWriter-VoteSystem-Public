@@ -13,3 +13,4 @@ class VoteDataEntry(
     override val name: String = "",
     override val artifactId: String = UUID.randomUUID().toString(),
 ) : ArtifactEntry
+

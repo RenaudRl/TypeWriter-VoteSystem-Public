@@ -70,3 +70,4 @@ class VotePlaceholders : PlaceholderHandler {
         }
     }
 }
+

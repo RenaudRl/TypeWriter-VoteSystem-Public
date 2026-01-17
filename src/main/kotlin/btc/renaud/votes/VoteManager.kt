@@ -94,3 +94,4 @@ object VoteManager {
 
     fun allDefinitions(): Collection<VoteDefinitionEntry> = definitions.values
 }
+

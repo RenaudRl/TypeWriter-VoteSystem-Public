@@ -13,3 +13,4 @@ object VoteInitializer : Initializable {
         // Nothing to shutdown
     }
 }
+

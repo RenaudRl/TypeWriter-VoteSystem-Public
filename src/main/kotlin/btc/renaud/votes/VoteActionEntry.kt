@@ -30,3 +30,4 @@ class VoteActionEntry(
         VoteManager.vote(player, def, opt)
     }
 }
+

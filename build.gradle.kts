@@ -9,7 +9,7 @@ dependencies {
 
 plugins {
     kotlin("jvm") version "2.2.10"
-    id("com.typewritermc.module-plugin") version "2.0.0"
+    id("com.typewritermc.module-plugin")
 }
 
 group = "btc.renaud"
@@ -31,7 +31,7 @@ typewriter {
             |A Vote System for Typewriter that allows players to vote (trigger can be send at the end of the cooldown)
             |Multiples menus, organized by status and tracking progress with quest categories.
             """.trimMargin()
-        engineVersion = "0.9.0-beta-165"
+        engineVersion = file("../../version.txt").readText().trim()
         channel = com.typewritermc.moduleplugin.ReleaseChannel.BETA
 
         dependencies {
@@ -43,3 +43,4 @@ typewriter {
 kotlin {
     jvmToolchain(21)
 }
+
