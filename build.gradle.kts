@@ -1,4 +1,5 @@
 repositories {
+    maven("https://repo.codemc.io/repository/maven-public/")
      mavenCentral()
 }
 dependencies {
