@@ -1,6 +1,14 @@
+﻿plugins {
+    kotlin("jvm") version "2.2.10"
+    id("com.typewritermc.module-plugin") version "2.1.0"
+}
+
 repositories {
     maven("https://repo.codemc.io/repository/maven-public/")
-     mavenCentral()
+    mavenCentral()
+    flatDir {
+        dir("libs")
+    }
 }
 dependencies {
     implementation(kotlin("reflect"))
@@ -8,10 +16,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }
 
-plugins {
-    kotlin("jvm") version "2.2.10"
-    id("com.typewritermc.module-plugin")
-}
+
 
 group = "btc.renaud"
 version = "0.0.1"
@@ -32,7 +37,7 @@ typewriter {
             |A Vote System for Typewriter that allows players to vote (trigger can be send at the end of the cooldown)
             |Multiples menus, organized by status and tracking progress with quest categories.
             """.trimMargin()
-        engineVersion = file("../../version.txt").readText().trim()
+        engineVersion = "0.9.0-beta-171"
         channel = com.typewritermc.moduleplugin.ReleaseChannel.BETA
 
         dependencies {
