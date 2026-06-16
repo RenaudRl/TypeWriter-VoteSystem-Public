@@ -1,4 +1,4 @@
-package btc.renaud.votes
+package btcrenaud.votes
 
 /**
  * Represents the available option slots in a poll. Each constant stores

@@ -1,52 +1,36 @@
-﻿plugins {
-    kotlin("jvm") version "2.2.10"
+plugins {
+    kotlin("jvm") version "2.3.20"
     id("com.typewritermc.module-plugin") version "2.1.0"
 }
 
 repositories {
-    maven("https://repo.codemc.io/repository/maven-public/")
+    maven("https://jitpack.io/")
     mavenCentral()
-    flatDir {
-        dir("libs")
-    }
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.codemc.io/repository/maven-public/")
+    maven("https://maven.typewritermc.com/beta/")
+    maven("https://maven.typewritermc.com/external")
+    mavenLocal()
 }
-dependencies {
-    implementation(kotlin("reflect"))
-    // Coroutine support for cooldown handling in the poll manager
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-}
-
-
 
 group = "btc.renaud"
-version = "0.0.1"
-
-// Ensure Gradle always writes a standard zip structure so the resulting
-// extension jar can be parsed without "invalid LOC header" errors.
-tasks.withType<Jar>().configureEach {
-    isZip64 = true
-}
+version = "0.0.5"
 
 typewriter {
-    namespace = "renaud"
-
+    namespace = "btcrenaud"
     extension {
         name = "VoteSystem"
         shortDescription = "Create a Vote System in TypeWriter"
-        description = """
-            |A Vote System for Typewriter that allows players to vote (trigger can be send at the end of the cooldown)
-            |Multiples menus, organized by status and tracking progress with quest categories.
-            """.trimMargin()
-        engineVersion = "0.9.0-beta-171"
+        description = "A comprehensive TypeWriter extension providing advanced gameplay features for Minecraft servers on Paper 1.21+. Fully compatible with the official TypeWriter engine and PlaceholderAPI."
+        engineVersion = "0.9.0-beta-174"
         channel = com.typewritermc.moduleplugin.ReleaseChannel.BETA
-
-        dependencies {
-            paper()
-        }
+        paper()
     }
 }
 
-kotlin {
-    jvmToolchain(21)
-}
+    
 
+kotlin {
+    jvmToolchain(25)
+    
+}

@@ -1,6 +1,6 @@
-package btc.renaud.votes
+package btcrenaud.votes
 
-import btc.renaud.votes.command.entryCompat
+import btcrenaud.votes.command.entryCompat
 import com.typewritermc.core.extension.annotations.TypewriterCommand
 import com.typewritermc.engine.paper.command.dsl.CommandTree
 import com.typewritermc.engine.paper.command.dsl.executePlayerOrTarget

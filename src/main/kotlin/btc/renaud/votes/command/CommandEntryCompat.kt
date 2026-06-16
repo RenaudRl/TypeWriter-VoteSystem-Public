@@ -1,4 +1,4 @@
-package btc.renaud.votes.command
+package btcrenaud.votes.command
 
 import com.mojang.brigadier.LiteralMessage
 import com.mojang.brigadier.arguments.ArgumentType

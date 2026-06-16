@@ -1,4 +1,4 @@
-package btc.renaud.votes
+package btcrenaud.votes
 
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.extension.annotations.Entry

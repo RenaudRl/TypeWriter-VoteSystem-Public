@@ -1,4 +1,4 @@
-package btc.renaud.votes
+package btcrenaud.votes
 
 import com.typewritermc.core.extension.Initializable
 import com.typewritermc.core.extension.annotations.Singleton
