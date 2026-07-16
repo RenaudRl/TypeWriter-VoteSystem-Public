@@ -1,9 +1,12 @@
-package btcrenaud.votes
+package btc.renaud.votes
 
+import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
+import btc.renaud.votes.services.VoteService
 import com.typewritermc.core.entries.Query
 import com.typewritermc.core.extension.annotations.Singleton
 import com.typewritermc.engine.paper.extensions.placeholderapi.PlaceholderHandler
 import org.bukkit.entity.Player
+import org.koin.java.KoinJavaComponent
 
 @Singleton
 class VotePlaceholders : PlaceholderHandler {
@@ -20,6 +23,9 @@ class VotePlaceholders : PlaceholderHandler {
     private val playerPattern =
         Regex("""^vote_player_([a-zA-Z0-9_:-]+)$""", RegexOption.IGNORE_CASE)
 
+    private val voteService: VoteService
+        get() = KoinJavaComponent.get(VoteService::class.java)
+
     override fun onPlaceholderRequest(player: Player?, params: String): String? {
         if (!params.startsWith("vote_", ignoreCase = true)) return null
 
@@ -27,25 +33,25 @@ class VotePlaceholders : PlaceholderHandler {
             val (id, idxStr) = it.destructured
             val def = resolveDefinition(id) ?: return null
             val index = idxStr.toIntOrNull()?.minus(1) ?: return null
-            return VoteManager.optionText(def, index, player)
+            return voteService.optionText(def, index, player)
         }
 
         displayPattern.matchEntire(params)?.let {
             val (id) = it.destructured
             val def = resolveDefinition(id) ?: return null
-            return VoteManager.displayName(def, player)
+            return voteService.displayName(def, player)
         }
 
         totalPattern.matchEntire(params)?.let {
             val (id) = it.destructured
             val def = resolveDefinition(id) ?: return null
-            return VoteManager.totalVotes(def).toString()
+            return voteService.totalVotes(def).toString()
         }
 
         statsPattern.matchEntire(params)?.let {
             val (id, idxStr) = it.destructured
             val def = resolveDefinition(id) ?: return null
-            val counts = VoteManager.optionVotes(def)
+            val counts = voteService.optionVotes(def)
             if (idxStr.isNotBlank()) {
                 val index = idxStr.toIntOrNull()?.minus(1) ?: return null
                 return counts.getOrNull(index)?.toString() ?: "0"
@@ -57,17 +63,16 @@ class VotePlaceholders : PlaceholderHandler {
             val (id) = it.destructured
             if (player == null) return null
             val def = resolveDefinition(id) ?: return null
-            val option = VoteManager.playerOption(player, def) ?: return ""
-            return VoteManager.optionText(def, option, player)
+            val option = voteService.playerOption(player, def) ?: return ""
+            return voteService.optionText(def, option, player)
         }
 
         return null
     }
 
     private fun resolveDefinition(id: String): VoteDefinitionEntry? {
-        return VoteManager.definition(id) ?: Query.findById<VoteDefinitionEntry>(id)?.also {
-            VoteManager.registerDefinition(it)
+        return voteService.definition(id) ?: Query.findById<VoteDefinitionEntry>(id)?.also {
+            voteService.registerDefinition(it)
         }
     }
 }
-
