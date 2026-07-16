@@ -1,4 +1,4 @@
-package btcrenaud.votes
+package btc.renaud.votes
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
