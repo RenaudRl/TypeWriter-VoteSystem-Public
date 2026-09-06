@@ -1,6 +1,8 @@
-package btcrenaud.votes
+package btc.renaud.votes
 
-import btcrenaud.votes.command.entryCompat
+import btc.renaud.votes.command.entryCompat
+import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
+import btc.renaud.votes.services.VoteService
 import com.typewritermc.core.extension.annotations.TypewriterCommand
 import com.typewritermc.engine.paper.command.dsl.CommandTree
 import com.typewritermc.engine.paper.command.dsl.executePlayerOrTarget
@@ -8,6 +10,10 @@ import com.typewritermc.engine.paper.command.dsl.int
 import com.typewritermc.engine.paper.command.dsl.sender
 import com.typewritermc.engine.paper.command.dsl.withPermission
 import com.typewritermc.engine.paper.utils.msg
+import org.koin.java.KoinJavaComponent
+
+private val voteService: VoteService
+    get() = KoinJavaComponent.get(VoteService::class.java)
 
 @TypewriterCommand
 fun CommandTree.voteCommand() = literal("vote") {
@@ -23,19 +29,18 @@ fun CommandTree.voteCommand() = literal("vote") {
             executePlayerOrTarget { voter ->
                 val definition = defArg()
                 val index = optionArg() - 1
-                val option = VoteOption.availableOptions(definition).getOrNull(index)
-                if (option == null) {
+                if (index !in definition.options.indices) {
                     sender.msg("Option ${optionArg()} is not available for ${definition.id}.")
                     return@executePlayerOrTarget
                 }
 
-                if (VoteManager.hasVoted(voter, definition)) {
+                if (voteService.hasVoted(voter, definition)) {
                     sender.msg("${voter.name} has already voted in ${definition.id}.")
                     return@executePlayerOrTarget
                 }
 
-                if (VoteManager.vote(voter, definition, option)) {
-                    val label = VoteManager.optionText(definition, index, voter).ifBlank {
+                if (voteService.vote(voter, definition, index)) {
+                    val label = voteService.optionText(definition, index, voter).ifBlank {
                         "option ${index + 1}"
                     }
                     voter.msg("Your vote for <blue>${definition.id}</blue> has been recorded as <green>$label</green>.")
@@ -56,7 +61,7 @@ fun CommandTree.voteCommand() = literal("vote") {
         entryCompat("definition", VoteDefinitionEntry::class) { defArg ->
             executes {
                 val definition = defArg()
-                VoteManager.reset(definition)
+                voteService.reset(definition)
                 sender.msg("Votes reset for ${definition.id}.")
             }
         }
@@ -70,7 +75,7 @@ fun CommandTree.voteCommand() = literal("vote") {
             }
         }
         executes {
-            val definitions = VoteManager.allDefinitions()
+            val definitions = voteService.allDefinitions()
             if (definitions.isEmpty()) {
                 sender.msg("There are no active vote definitions.")
                 return@executes
@@ -84,18 +89,17 @@ fun CommandTree.voteCommand() = literal("vote") {
 }
 
 private fun formatVoteStats(definition: VoteDefinitionEntry): String {
-    val displayName = VoteManager.displayName(definition, null).ifBlank {
+    val displayName = voteService.displayName(definition, null).ifBlank {
         definition.name.ifBlank { definition.id }
     }
-    val optionStats = VoteManager.optionVotes(definition)
+    val optionStats = voteService.optionVotes(definition)
         .mapIndexed { index, count ->
-            val label = VoteManager.optionText(definition, index, null).ifBlank {
+            val label = voteService.optionText(definition, index, null).ifBlank {
                 "Option ${index + 1}"
             }
             "${index + 1}: $count ($label)"
         }
         .joinToString(", ")
-    val total = VoteManager.totalVotes(definition)
+    val total = voteService.totalVotes(definition)
     return "Stats for $displayName [${definition.id}]: $optionStats | total: $total"
 }
-

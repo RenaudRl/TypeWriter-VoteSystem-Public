@@ -1,14 +1,21 @@
-package btcrenaud.votes
+package btc.renaud.votes.services
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import com.typewritermc.core.extension.annotations.Singleton
 import com.typewritermc.engine.paper.entry.entries.get
 import org.bukkit.entity.Player
+import btc.renaud.votes.entries.artifact.VoteDataEntry
+import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
+import btc.renaud.votes.loadDefinitionData
+import btc.renaud.votes.saveDefinitionData
+import btc.renaud.votes.removeDefinitionData
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
-object VoteManager {
+@Singleton
+class VoteService {
     private val definitions = ConcurrentHashMap<String, VoteDefinitionEntry>()
 
     fun registerDefinition(entry: VoteDefinitionEntry) {
@@ -17,8 +24,13 @@ object VoteManager {
 
     fun definition(id: String): VoteDefinitionEntry? = definitions[id.lowercase()]
 
-    fun vote(player: Player, definition: VoteDefinitionEntry, option: VoteOption): Boolean {
+    fun allDefinitions(): Collection<VoteDefinitionEntry> = definitions.values
+
+    fun vote(player: Player, definition: VoteDefinitionEntry, optionIndex: Int): Boolean {
+        if (optionIndex < 0 || optionIndex >= definition.options.size) return false
+
         val artifact = definition.data.get() ?: return false
+
         if (definition.endDate.isNotBlank()) {
             runCatching { Instant.parse(definition.endDate) }.getOrNull()?.let {
                 if (Instant.now().isAfter(it)) {
@@ -30,22 +42,24 @@ object VoteManager {
                 }
             }
         }
+
         val data = artifact.loadDefinitionData(definition.id)
         val players = data.get("players")?.asJsonObject ?: JsonObject().also { data.add("players", it) }
         val uuid = player.uniqueId.toString()
+
         if (players.has(uuid)) return false
+
         val options = data.get("options")?.asJsonArray ?: JsonArray().also { data.add("options", it) }
         while (options.size() < definition.options.size) {
             options.add(0)
         }
-        val index = option.index
-        if (index < 0 || index >= options.size()) return false
-        val current = options[index].asInt
-        options[index] = JsonPrimitive(current + 1)
+
+        if (optionIndex >= options.size()) return false
+        val current = options[optionIndex].asInt
+        options[optionIndex] = JsonPrimitive(current + 1)
         val total = data["total"]?.asInt ?: 0
         data.addProperty("total", total + 1)
-        players.addProperty(uuid, index)
-        // Persist the updated vote information for this definition
+        players.addProperty(uuid, optionIndex)
         artifact.saveDefinitionData(definition.id, data)
         return true
     }
@@ -91,7 +105,4 @@ object VoteManager {
         val artifact = definition.data.get() ?: return
         artifact.removeDefinitionData(definition.id)
     }
-
-    fun allDefinitions(): Collection<VoteDefinitionEntry> = definitions.values
 }
-
