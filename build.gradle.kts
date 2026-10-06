@@ -33,7 +33,17 @@ typewriter {
 
     
 
+dependencies {
+    testImplementation(kotlin("test"))
+    // Gson reaches compilation through the engine, but compileOnly carries nothing to the test runtime.
+    testImplementation("com.google.code.gson:gson:2.13.1")
+}
+
 kotlin {
     jvmToolchain(21)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 

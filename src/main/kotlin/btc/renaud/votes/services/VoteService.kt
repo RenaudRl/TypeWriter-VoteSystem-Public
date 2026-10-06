@@ -2,11 +2,12 @@ package btc.renaud.votes.services
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import com.google.gson.JsonPrimitive
+import com.typewritermc.core.entries.Query
 import com.typewritermc.core.extension.annotations.Singleton
 import com.typewritermc.engine.paper.entry.entries.get
+import com.typewritermc.engine.paper.plugin
 import org.bukkit.entity.Player
-import btc.renaud.votes.entries.artifact.VoteDataEntry
+import btc.renaud.votes.entries.manifest.VoteConfigEntry
 import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
 import btc.renaud.votes.loadDefinitionData
 import btc.renaud.votes.saveDefinitionData
@@ -18,6 +19,20 @@ import java.util.concurrent.ConcurrentHashMap
 class VoteService {
     private val definitions = ConcurrentHashMap<String, VoteDefinitionEntry>()
 
+    // Definitions register themselves when their entry is built, so only the config is (re)loaded here.
+    @Volatile
+    private var config: VoteConfigEntry? = null
+
+    /** Reads the `vote_config` entry: the one named `default` if several exist, otherwise the first. */
+    fun initialize() {
+        val configs = Query.find<VoteConfigEntry>().toList()
+        config = configs.firstOrNull { it.id == "default" } ?: configs.firstOrNull()
+    }
+
+    fun shutdown() {
+        config = null
+    }
+
     fun registerDefinition(entry: VoteDefinitionEntry) {
         definitions[entry.id.lowercase()] = entry
     }
@@ -26,6 +41,8 @@ class VoteService {
 
     fun allDefinitions(): Collection<VoteDefinitionEntry> = definitions.values
 
+    // Serialized: the check and the write below read and rewrite the same artifact file.
+    @Synchronized
     fun vote(player: Player, definition: VoteDefinitionEntry, optionIndex: Int): Boolean {
         if (optionIndex < 0 || optionIndex >= definition.options.size) return false
 
@@ -44,31 +61,26 @@ class VoteService {
         }
 
         val data = artifact.loadDefinitionData(definition.id)
-        val players = data.get("players")?.asJsonObject ?: JsonObject().also { data.add("players", it) }
         val uuid = player.uniqueId.toString()
+        val now = System.currentTimeMillis()
 
-        if (players.has(uuid)) return false
-
-        val options = data.get("options")?.asJsonArray ?: JsonArray().also { data.add("options", it) }
-        while (options.size() < definition.options.size) {
-            options.add(0)
+        if (VoteTally.isBlocked(VoteTally.previousCastAt(data, uuid), cooldownSeconds(), now)) {
+            debug("vote ${definition.id} by ${player.name} refused: still blocked")
+            return false
         }
 
-        if (optionIndex >= options.size()) return false
-        val current = options[optionIndex].asInt
-        options[optionIndex] = JsonPrimitive(current + 1)
-        val total = data["total"]?.asInt ?: 0
-        data.addProperty("total", total + 1)
-        players.addProperty(uuid, optionIndex)
+        VoteTally.record(data, uuid, optionIndex, definition.options.size, now)
         artifact.saveDefinitionData(definition.id, data)
+        debug("vote ${definition.id} by ${player.name} recorded for option $optionIndex")
         return true
     }
 
+    /** True while the player cannot vote again: always after a vote, or until the cooldown elapses. */
     fun hasVoted(player: Player, definition: VoteDefinitionEntry): Boolean {
         val artifact = definition.data.get() ?: return false
         val data = artifact.loadDefinitionData(definition.id)
-        val players = data.get("players")?.asJsonObject ?: return false
-        return players.has(player.uniqueId.toString())
+        val previous = VoteTally.previousCastAt(data, player.uniqueId.toString())
+        return VoteTally.isBlocked(previous, cooldownSeconds(), System.currentTimeMillis())
     }
 
     fun playerOption(player: Player, definition: VoteDefinitionEntry): Int? {
@@ -104,5 +116,11 @@ class VoteService {
     fun reset(definition: VoteDefinitionEntry) {
         val artifact = definition.data.get() ?: return
         artifact.removeDefinitionData(definition.id)
+    }
+
+    private fun cooldownSeconds(): Int = config?.cooldownSeconds?.coerceAtLeast(0) ?: 0
+
+    private fun debug(message: String) {
+        if (config?.debug == true) plugin.logger.info("[VoteSystem] $message")
     }
 }
