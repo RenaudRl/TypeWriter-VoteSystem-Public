@@ -67,16 +67,46 @@ class VoteTallyTest {
     }
 
     @Test
-    fun `a vote saved before dates existed stays final without a cooldown and expired with one`() {
-        val legacy = JsonObject().apply {
-            add("players", JsonObject().apply { addProperty(alice, 0) })
-        }
+    fun `an unstamped legacy vote stays blocked instead of granting a free revote`() {
+        val legacy = legacyPoll()
 
         val previous = VoteTally.previousCastAt(legacy, alice)
 
-        assertEquals(0L, previous)
         assertTrue(VoteTally.isBlocked(previous, cooldownSeconds = 0, now = 1_000_000))
-        assertFalse(VoteTally.isBlocked(previous, cooldownSeconds = 30, now = 1_000_000))
+        assertTrue(VoteTally.isBlocked(previous, cooldownSeconds = 30, now = 1_000_000))
+    }
+
+    @Test
+    fun `stamping a legacy poll dates its voters at migration, so the cooldown starts then`() {
+        val legacy = legacyPoll()
+
+        assertTrue(VoteTally.stampLegacy(legacy, now = 1_000_000))
+
+        assertEquals(1_000_000L, VoteTally.previousCastAt(legacy, alice))
+        assertTrue(VoteTally.isBlocked(VoteTally.previousCastAt(legacy, alice), cooldownSeconds = 30, now = 1_029_999))
+        assertFalse(VoteTally.isBlocked(VoteTally.previousCastAt(legacy, alice), cooldownSeconds = 30, now = 1_030_000))
+        assertTrue(VoteTally.isBlocked(VoteTally.previousCastAt(legacy, alice), cooldownSeconds = 0, now = 9_000_000))
+    }
+
+    @Test
+    fun `stamping keeps real dates and does nothing twice`() {
+        val data = legacyPoll()
+        VoteTally.record(data, bob, optionIndex = 1, optionCount = 2, now = 500)
+
+        assertTrue(VoteTally.stampLegacy(data, now = 1_000_000))
+
+        assertEquals(500L, VoteTally.previousCastAt(data, bob))
+        assertFalse(VoteTally.stampLegacy(data, now = 2_000_000))
+        assertEquals(1_000_000L, VoteTally.previousCastAt(data, alice))
+    }
+
+    @Test
+    fun `stamping an empty or fresh poll changes nothing`() {
+        assertFalse(VoteTally.stampLegacy(JsonObject(), now = 1_000))
+    }
+
+    private fun legacyPoll() = JsonObject().apply {
+        add("players", JsonObject().apply { addProperty(alice, 0) })
     }
 
     @Test

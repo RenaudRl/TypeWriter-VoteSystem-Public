@@ -9,7 +9,7 @@ import com.google.gson.JsonPrimitive
  * tested without a server.
  *
  * A poll is stored as `{ "players": {uuid: option}, "castAt": {uuid: epochMillis}, "options": [counts], "total": n }`.
- * `castAt` was added with the cooldown; polls saved before it simply lack the key.
+ * `castAt` was added with the cooldown; polls saved before it lack the key and are stamped by [stampLegacy].
  */
 object VoteTally {
     private const val MILLIS_PER_SECOND = 1_000L
@@ -29,13 +29,30 @@ object VoteTally {
     /**
      * When [uuid] last voted, or `null` if they never did.
      *
-     * A vote saved before `castAt` existed has no date: it is reported as cast at epoch 0, so it
-     * stays final without a cooldown and counts as long expired once a cooldown is configured.
+     * A vote saved before `castAt` existed has no date. [stampLegacy] gives it one at migration, so
+     * this fallback only covers data that was not stamped yet: it reports the vote as cast "in the
+     * future", which keeps the player blocked rather than granting a free revote.
      */
     fun previousCastAt(data: JsonObject, uuid: String): Long? {
         val players = data.getAsJsonObject("players") ?: return null
         if (!players.has(uuid)) return null
-        return data.getAsJsonObject("castAt")?.get(uuid)?.asLong ?: 0L
+        return data.getAsJsonObject("castAt")?.get(uuid)?.asLong ?: Long.MAX_VALUE
+    }
+
+    /**
+     * Migration of polls saved before `castAt` existed: every voter without a date is stamped [now],
+     * so their cooldown starts at the first contact after the update instead of being expired.
+     * Returns true when [data] changed and must be saved.
+     */
+    fun stampLegacy(data: JsonObject, now: Long): Boolean {
+        val players = data.getAsJsonObject("players") ?: return false
+        val castAt = data.getAsJsonObject("castAt") ?: JsonObject()
+        val undated = players.keySet().filterNot { castAt.has(it) }
+        if (undated.isEmpty()) return false
+
+        undated.forEach { castAt.addProperty(it, now) }
+        data.add("castAt", castAt)
+        return true
     }
 
     /**

@@ -4,6 +4,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.typewritermc.core.entries.Query
 import com.typewritermc.core.extension.annotations.Singleton
+import com.typewritermc.engine.paper.entry.entries.ArtifactEntry
 import com.typewritermc.engine.paper.entry.entries.get
 import com.typewritermc.engine.paper.plugin
 import org.bukkit.entity.Player
@@ -60,9 +61,9 @@ class VoteService {
             }
         }
 
-        val data = artifact.loadDefinitionData(definition.id)
-        val uuid = player.uniqueId.toString()
         val now = System.currentTimeMillis()
+        val data = loadStamped(artifact, definition, now)
+        val uuid = player.uniqueId.toString()
 
         if (VoteTally.isBlocked(VoteTally.previousCastAt(data, uuid), cooldownSeconds(), now)) {
             debug("vote ${definition.id} by ${player.name} refused: still blocked")
@@ -76,11 +77,27 @@ class VoteService {
     }
 
     /** True while the player cannot vote again: always after a vote, or until the cooldown elapses. */
+    @Synchronized
     fun hasVoted(player: Player, definition: VoteDefinitionEntry): Boolean {
         val artifact = definition.data.get() ?: return false
-        val data = artifact.loadDefinitionData(definition.id)
+        val now = System.currentTimeMillis()
+        val data = loadStamped(artifact, definition, now)
         val previous = VoteTally.previousCastAt(data, player.uniqueId.toString())
-        return VoteTally.isBlocked(previous, cooldownSeconds(), System.currentTimeMillis())
+        return VoteTally.isBlocked(previous, cooldownSeconds(), now)
+    }
+
+    /**
+     * Loads a poll and dates the votes saved before `castAt` existed, persisting the migration.
+     * Whichever of [vote] or [hasVoted] touches the poll first after the update starts those
+     * cooldowns; callers hold the service lock because this may write the artifact.
+     */
+    private fun loadStamped(artifact: ArtifactEntry, definition: VoteDefinitionEntry, now: Long): JsonObject {
+        val data = artifact.loadDefinitionData(definition.id)
+        if (VoteTally.stampLegacy(data, now)) {
+            artifact.saveDefinitionData(definition.id, data)
+            debug("poll ${definition.id}: dated legacy votes at migration")
+        }
+        return data
     }
 
     fun playerOption(player: Player, definition: VoteDefinitionEntry): Int? {
