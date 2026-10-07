@@ -2,27 +2,50 @@
 
 ![Java Version](https://img.shields.io/badge/Java-21-orange)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Target](https://img.shields.io/badge/Target-Paper%20/%20Folia%20/%20BTC--CORE-blue)
+![Target](https://img.shields.io/badge/Target-Paper-blue)
+![Typewriter](https://img.shields.io/badge/Typewriter-0.9.0--beta--177-purple)
 
-**VoteSystem Extension** is a voting management module for **TypeWriter**, engineered for **BTC Studio** infrastructure. It enables comprehensive voting mechanics with cooldown management and reward triggers.
+**VoteSystem Extension** is a poll module for **TypeWriter**, engineered for **BTC Studio** infrastructure. Players pick one option of a vote definition; results are stored in an artifact and exposed through commands and placeholders.
 
 ---
 
 ## 🚀 Key Features
 
 ### 🗳️ Voting Mechanics
-- **Cooldown triggers**: Execute actions automatically when vote cooldowns expire.
-- **Progress Tracking**: Track player voting habits and history.
+- **Vote definitions**: a display name, a list of options, an optional ISO-8601 `endDate` and a `closedMessage` shown once voting is closed.
+- **One vote per poll, or a cooldown**: with `cooldownSeconds` at 0 (default) the first vote is final. Above 0, a player can vote again after that many seconds; counts are cumulative.
+- **Legacy votes**: votes saved before the cooldown existed are dated at the first contact after the update, so their cooldown starts then.
+- **Debug log**: `debug` in the Vote Config logs votes accepted or refused.
 
-### 📋 Menu Integration
-- **Dynamic Interfaces**: Organized menus to view active votes and cooldown statuses.
-- **Category Support**: Group votes logically for better user experience.
+### ⌨️ Commands & permissions
+
+| Command | Permission | Description |
+|---|---|---|
+| `/tw vote` | `typewriter.vote` | Show usage. |
+| `/tw vote <definition> <option> [target]` | `typewriter.vote.cast` | Cast a vote (options are numbered from 1). |
+| `/tw vote reset <definition>` | `typewriter.vote.reset` | Reset the votes of a poll. |
+| `/tw vote stats [definition]` | `typewriter.vote.stats` | Show the results of one or all polls. |
+
+### 🔣 Placeholders
+`vote_option_<id>_<n>`, `vote_display_<id>`, `vote_total_<id>`, `vote_stats_<id>[_<n>]` (alias `vote_votes_`) and `vote_player_<id>`.
 
 ---
 
 ## ⚙️ Configuration
 
-VoteSystem Extension configuration is managed via TypeWriter's manifest system.
+VoteSystem Extension configuration is managed via TypeWriter's manifest system. Requires Typewriter `0.9.0-beta-177` on Paper.
+
+| Entry | Id | Role |
+|---|---|---|
+| Vote Definition | `vote_definition` | A poll: `displayName`, `options`, `endDate`, `closedMessage`, `data` (artifact) |
+| Vote Data | `vote_data` | Artifact storing the votes |
+| Vote System Configuration | `vote_config` | `cooldownSeconds` and `debug` |
+| Vote Action | `vote_action` | Cast a vote on an option (0-based index) |
+| Vote Message | `vote_message` | Message depending on whether the player already voted |
+| Vote Cast Event | `vote_cast_event` | Event entry with `triggers` |
+| Vote Fact | `vote_fact` | Fact entry |
+
+The Vote Cast Event and Vote Fact entries are declared, but this extension does not fire or read them yet.
 
 ## 🛠 Building & Deployment
 
