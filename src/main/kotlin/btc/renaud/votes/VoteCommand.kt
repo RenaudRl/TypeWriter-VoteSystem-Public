@@ -20,7 +20,7 @@ fun CommandTree.voteCommand() = literal("vote") {
     withPermission("typewriter.vote")
 
     executes {
-        sender.msg("Usage: /tw vote <definition> <option> [target]")
+        sender.msg(VoteTexts.usage())
     }
 
     entryCompat("definition", VoteDefinitionEntry::class) { defArg ->
@@ -30,27 +30,27 @@ fun CommandTree.voteCommand() = literal("vote") {
                 val definition = defArg()
                 val index = optionArg() - 1
                 if (index !in definition.options.indices) {
-                    sender.msg("Option ${optionArg()} is not available for ${definition.id}.")
+                    sender.msg(VoteTexts.optionUnavailable(optionArg(), definition.id))
                     return@executePlayerOrTarget
                 }
 
                 if (voteService.hasVoted(voter, definition)) {
-                    sender.msg("${voter.name} has already voted in ${definition.id}.")
+                    sender.msg(VoteTexts.alreadyVoted(voter.name, definition.id))
                     return@executePlayerOrTarget
                 }
 
                 if (voteService.vote(voter, definition, index)) {
                     val label = voteService.optionText(definition, index, voter).ifBlank {
-                        "option ${index + 1}"
+                        VoteTexts.castOptionFallback(index)
                     }
-                    voter.msg("Your vote for <blue>${definition.id}</blue> has been recorded as <green>$label</green>.")
+                    voter.msg(VoteTexts.recordedForVoter(definition.id, label))
                     if (sender != voter) {
-                        sender.msg("Recorded vote for <blue>${voter.name}</blue> in ${definition.id}: $label.")
+                        sender.msg(VoteTexts.recordedByOther(voter.name, definition.id, label))
                     } else {
-                        sender.msg("Vote registered for ${definition.id}: $label.")
+                        sender.msg(VoteTexts.recordedForSelf(definition.id, label))
                     }
                 } else {
-                    sender.msg("Unable to register the vote for ${voter.name} in ${definition.id}.")
+                    sender.msg(VoteTexts.castFailed(voter.name, definition.id))
                 }
             }
         }
@@ -62,7 +62,7 @@ fun CommandTree.voteCommand() = literal("vote") {
             executes {
                 val definition = defArg()
                 voteService.reset(definition)
-                sender.msg("Votes reset for ${definition.id}.")
+                sender.msg(VoteTexts.resetDone(definition.id))
             }
         }
     }
@@ -77,7 +77,7 @@ fun CommandTree.voteCommand() = literal("vote") {
         executes {
             val definitions = voteService.allDefinitions()
             if (definitions.isEmpty()) {
-                sender.msg("There are no active vote definitions.")
+                sender.msg(VoteTexts.noDefinitions())
                 return@executes
             }
 
@@ -92,14 +92,7 @@ private fun formatVoteStats(definition: VoteDefinitionEntry): String {
     val displayName = voteService.displayName(definition, null).ifBlank {
         definition.name.ifBlank { definition.id }
     }
-    val optionStats = voteService.optionVotes(definition)
-        .mapIndexed { index, count ->
-            val label = voteService.optionText(definition, index, null).ifBlank {
-                "Option ${index + 1}"
-            }
-            "${index + 1}: $count ($label)"
-        }
-        .joinToString(", ")
-    val total = voteService.totalVotes(definition)
-    return "Stats for $displayName [${definition.id}]: $optionStats | total: $total"
+    val counts = voteService.optionVotes(definition)
+    val labels = counts.indices.map { index -> voteService.optionText(definition, index, null) }
+    return VoteTexts.stats(displayName, definition.id, counts, labels, voteService.totalVotes(definition))
 }

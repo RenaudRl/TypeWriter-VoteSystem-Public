@@ -11,6 +11,7 @@ import com.typewritermc.core.entries.Entry
 import com.typewritermc.core.entries.Query
 import com.typewritermc.engine.paper.command.dsl.ArgumentBlock
 import com.typewritermc.engine.paper.command.dsl.DslCommandTree
+import btc.renaud.votes.VoteTexts
 import io.papermc.paper.command.brigadier.argument.CustomArgumentType
 import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
@@ -38,10 +39,10 @@ class CompatEntryArgumentType<E : Entry>(
     override fun convert(nativeType: String): E {
         val entry = Query.findById(klass, nativeType)
             ?: Query.findByName(klass, nativeType)
-            ?: throw SimpleCommandExceptionType(LiteralMessage("Could not find entry $nativeType")).create()
+            ?: throw SimpleCommandExceptionType(LiteralMessage(VoteTexts.entryNotFound(nativeType))).create()
 
         if (!filter(entry)) {
-            throw SimpleCommandExceptionType(LiteralMessage("Entry did not pass filter")).create()
+            throw SimpleCommandExceptionType(LiteralMessage(VoteTexts.entryRejected())).create()
         }
 
         return entry

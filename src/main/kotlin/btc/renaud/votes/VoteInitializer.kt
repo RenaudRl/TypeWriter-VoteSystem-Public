@@ -8,6 +8,7 @@ import btc.renaud.votes.services.VoteService
 @Singleton
 object VoteInitializer : Initializable {
     override suspend fun initialize() {
+        VoteTexts.register()
         get<VoteService>(VoteService::class.java).initialize()
     }
 
