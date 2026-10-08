@@ -13,7 +13,7 @@ repositories {
 }
 
 group = "btc.renaud"
-version = "0.0.10"
+version = "0.0.9"
 
 base {
     archivesName.set("VoteSystemExtension")
