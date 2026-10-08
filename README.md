@@ -27,7 +27,7 @@
 | `/tw vote stats [definition]` | `typewriter.vote.stats` | Show the results of one or all polls. |
 
 ### 🔣 Placeholders
-`vote_option_<id>_<n>`, `vote_display_<id>`, `vote_total_<id>`, `vote_stats_<id>[_<n>]` (alias `vote_votes_`) and `vote_player_<id>`.
+`vote_option_<id>_<n>`, `vote_display_<id>`, `vote_total_<id>`, `vote_stats_<id>[_<n>]` (alias `vote_votes_`), `vote_player_<id>`, `vote_has_voted_<id>` and `vote_closed_<id>` (both `1` or `0`), and `vote_remaining_<id>` (seconds before the end date, `0` without one).
 
 ---
 
@@ -37,10 +37,10 @@ VoteSystem Extension configuration is managed via TypeWriter's manifest system. 
 
 | Entry | Id | Role |
 |---|---|---|
-| Vote Definition | `vote_definition` | A poll: `displayName`, `options`, `endDate`, `closedMessage`, `data` (artifact) |
+| Vote Definition | `vote_definition` | A poll: `displayName`, `options`, `endDate`, `closedMessage`, `blockedMessage`, `data` (artifact) |
 | Vote Data | `vote_data` | Artifact storing the votes |
 | Vote System Configuration | `vote_config` | `cooldownSeconds` and `debug` |
-| Vote Action | `vote_action` | Cast a vote on an option (0-based index) |
+| Vote Action | `vote_action` | Cast a vote on an option (0-based index). Its `triggers` and modifiers run only when the vote is recorded; a refused vote shows the closed or blocked message of the poll and fires `refusedTriggers` |
 | Vote Message | `vote_message` | Message depending on whether the player already voted |
 | Vote Cast Event | `vote_cast_event` | Event entry with `triggers` |
 | Vote Fact | `vote_fact` | Fact entry |

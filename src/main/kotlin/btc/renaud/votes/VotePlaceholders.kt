@@ -20,6 +20,12 @@ class VotePlaceholders : PlaceholderHandler {
         Regex("""^vote_total_([a-zA-Z0-9_:-]+)$""", RegexOption.IGNORE_CASE)
     private val statsPattern =
         Regex("""^vote_(?:stats|votes)_([a-zA-Z0-9_:-]+)(?:_(\d+))?$""", RegexOption.IGNORE_CASE)
+    private val hasVotedPattern =
+        Regex("""^vote_has_voted_([a-zA-Z0-9_:-]+)$""", RegexOption.IGNORE_CASE)
+    private val closedPattern =
+        Regex("""^vote_closed_([a-zA-Z0-9_:-]+)$""", RegexOption.IGNORE_CASE)
+    private val remainingPattern =
+        Regex("""^vote_remaining_([a-zA-Z0-9_:-]+)$""", RegexOption.IGNORE_CASE)
     private val playerPattern =
         Regex("""^vote_player_([a-zA-Z0-9_:-]+)$""", RegexOption.IGNORE_CASE)
 
@@ -59,6 +65,25 @@ class VotePlaceholders : PlaceholderHandler {
             return counts.joinToString(",")
         }
 
+        hasVotedPattern.matchEntire(params)?.let {
+            val (id) = it.destructured
+            if (player == null) return null
+            val def = resolveDefinition(id) ?: return null
+            return flag(voteService.hasVoted(player, def))
+        }
+
+        closedPattern.matchEntire(params)?.let {
+            val (id) = it.destructured
+            val def = resolveDefinition(id) ?: return null
+            return flag(voteService.isClosed(def))
+        }
+
+        remainingPattern.matchEntire(params)?.let {
+            val (id) = it.destructured
+            val def = resolveDefinition(id) ?: return null
+            return voteService.remainingSeconds(def).toString()
+        }
+
         playerPattern.matchEntire(params)?.let {
             val (id) = it.destructured
             if (player == null) return null
@@ -69,6 +94,9 @@ class VotePlaceholders : PlaceholderHandler {
 
         return null
     }
+
+    /** The yes/no answer of a placeholder: `1` or `0`, so pages can compare it with a fact or a condition. */
+    private fun flag(value: Boolean): String = if (value) "1" else "0"
 
     private fun resolveDefinition(id: String): VoteDefinitionEntry? {
         return voteService.definition(id) ?: Query.findById<VoteDefinitionEntry>(id)?.also {
