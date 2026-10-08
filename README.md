@@ -45,6 +45,8 @@ VoteSystem Extension configuration is managed via TypeWriter's manifest system. 
 | Vote Cast Event | `vote_cast_event` | Event entry with `triggers` |
 | Vote Fact | `vote_fact` | Fact entry |
 
+Poll messages (`closedMessage`, `blockedMessage`, the Vote Message texts) resolve placeholders, then are read as MiniMessage, so colours and styles typed in the editor show up.
+
 The Vote Cast Event and Vote Fact entries are declared, but this extension does not fire or read them yet.
 
 ## 🛠 Building & Deployment
@@ -70,9 +72,6 @@ cd TypeWriter-VoteSystem-Public
 - **[BTC Studio](https://github.com/RenaudRl)** - Maintenance and specialized optimizations.
 
 ---
-
-## 📜 License
-Licensed under the **MIT License**.
 
 ## Documentation
 
