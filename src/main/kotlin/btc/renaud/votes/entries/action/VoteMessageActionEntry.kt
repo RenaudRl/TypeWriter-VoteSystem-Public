@@ -13,6 +13,7 @@ import com.typewritermc.engine.paper.entry.entries.ConstVar
 import com.typewritermc.engine.paper.entry.entries.Var
 import org.koin.java.KoinJavaComponent.get
 import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
+import btc.renaud.votes.sendPollMessage
 import btc.renaud.votes.services.VoteService
 
 @Entry("vote_message", "Vote Message", Colors.RED, "fa6-solid:envelope")
@@ -39,16 +40,7 @@ class VoteMessageActionEntry(
     override fun ActionTrigger.execute() {
         val def = definition.get() ?: return
         val voteService = get<VoteService>(VoteService::class.java)
-        if (voteService.hasVoted(player, def)) {
-            val msg = alreadyVotedMessage.get(player)
-            if (msg.isNotBlank()) {
-                player.sendMessage(msg)
-            }
-        } else {
-            val msg = notVotedMessage.get(player)
-            if (msg.isNotBlank()) {
-                player.sendMessage(msg)
-            }
-        }
+        val message = if (voteService.hasVoted(player, def)) alreadyVotedMessage else notVotedMessage
+        player.sendPollMessage(message.get(player))
     }
 }

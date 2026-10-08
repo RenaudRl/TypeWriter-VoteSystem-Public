@@ -11,6 +11,7 @@ import org.bukkit.entity.Player
 import btc.renaud.votes.entries.manifest.VoteConfigEntry
 import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
 import btc.renaud.votes.loadDefinitionData
+import btc.renaud.votes.sendPollMessage
 import btc.renaud.votes.saveDefinitionData
 import btc.renaud.votes.removeDefinitionData
 import java.time.Instant
@@ -52,10 +53,7 @@ class VoteService {
         if (definition.endDate.isNotBlank()) {
             runCatching { Instant.parse(definition.endDate) }.getOrNull()?.let {
                 if (Instant.now().isAfter(it)) {
-                    val msg = definition.closedMessage.get(player)
-                    if (!msg.isNullOrBlank()) {
-                        player.sendMessage(msg)
-                    }
+                    player.sendPollMessage(definition.closedMessage.get(player))
                     return false
                 }
             }
