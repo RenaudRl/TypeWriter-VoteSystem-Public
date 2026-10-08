@@ -11,10 +11,8 @@ import org.bukkit.entity.Player
 import btc.renaud.votes.entries.manifest.VoteConfigEntry
 import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
 import btc.renaud.votes.loadDefinitionData
-import btc.renaud.votes.sendPollMessage
 import btc.renaud.votes.saveDefinitionData
 import btc.renaud.votes.removeDefinitionData
-import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 @Singleton
@@ -43,37 +41,51 @@ class VoteService {
 
     fun allDefinitions(): Collection<VoteDefinitionEntry> = definitions.values
 
-    // Serialized: the check and the write below read and rewrite the same artifact file.
+    /**
+     * Tries to record a vote and says what became of it; nothing is sent to the player, the caller answers with
+     * [refusalText]. Serialized: the check and the write read and rewrite the same artifact file.
+     */
     @Synchronized
-    fun vote(player: Player, definition: VoteDefinitionEntry, optionIndex: Int): Boolean {
-        if (optionIndex < 0 || optionIndex >= definition.options.size) return false
-
-        val artifact = definition.data.get() ?: return false
-
-        if (definition.endDate.isNotBlank()) {
-            runCatching { Instant.parse(definition.endDate) }.getOrNull()?.let {
-                if (Instant.now().isAfter(it)) {
-                    player.sendPollMessage(definition.closedMessage.get(player))
-                    return false
-                }
-            }
-        }
+    fun vote(player: Player, definition: VoteDefinitionEntry, optionIndex: Int): VoteOutcome {
+        val artifact = definition.data.get() ?: return refused(player, definition, VoteOutcome.NO_DATA)
 
         val now = System.currentTimeMillis()
         val data = loadStamped(artifact, definition, now)
         val uuid = player.uniqueId.toString()
 
-        if (VoteTally.isBlocked(VoteTally.previousCastAt(data, uuid), cooldownSeconds(), now)) {
-            debug("vote ${definition.id} by ${player.name} refused: still blocked")
-            return false
-        }
+        val outcome = VotePolicy.decide(
+            optionIndex = optionIndex,
+            optionCount = definition.options.size,
+            endDate = definition.endDate,
+            previousCastAt = VoteTally.previousCastAt(data, uuid),
+            cooldownSeconds = cooldownSeconds(),
+            now = now,
+        )
+        if (!outcome.isAccepted) return refused(player, definition, outcome)
 
         VoteTally.record(data, uuid, optionIndex, definition.options.size, now)
         artifact.saveDefinitionData(definition.id, data)
         debug("vote ${definition.id} by ${player.name} recorded for option $optionIndex")
-        return true
+        return outcome
     }
 
+    /** The text the poll shows a player whose vote was refused, as written in the entry; blank when the poll has none for [outcome]. */
+    fun refusalText(definition: VoteDefinitionEntry, outcome: VoteOutcome, player: Player): String = when (outcome) {
+        VoteOutcome.CLOSED -> definition.closedMessage.get(player)
+        VoteOutcome.BLOCKED -> definition.blockedMessage.get(player)
+        VoteOutcome.ACCEPTED, VoteOutcome.OPTION_UNAVAILABLE, VoteOutcome.NO_DATA -> ""
+    }
+
+    fun isClosed(definition: VoteDefinitionEntry): Boolean =
+        VotePolicy.isClosed(definition.endDate, System.currentTimeMillis())
+
+    fun remainingSeconds(definition: VoteDefinitionEntry): Long =
+        VotePolicy.remainingSeconds(definition.endDate, System.currentTimeMillis())
+
+    private fun refused(player: Player, definition: VoteDefinitionEntry, outcome: VoteOutcome): VoteOutcome {
+        debug("vote ${definition.id} by ${player.name} refused: ${outcome.logReason}")
+        return outcome
+    }
     /** True while the player cannot vote again: always after a vote, or until the cooldown elapses. */
     @Synchronized
     fun hasVoted(player: Player, definition: VoteDefinitionEntry): Boolean {

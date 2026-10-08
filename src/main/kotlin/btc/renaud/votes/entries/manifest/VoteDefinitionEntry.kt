@@ -32,8 +32,14 @@ class VoteDefinitionEntry(
     @Placeholder
     @Colored
     @MultiLine
-    @Help("Message shown when voting is closed")
+    @Help("Message shown when someone votes after the end date. Leave empty for no message.")
     val closedMessage: Var<String> = ConstVar(""),
+    @Placeholder
+    @Colored
+    @MultiLine
+    @Default("\"<red>You cannot vote again yet.</red>\"")
+    @Help("Message shown when a player votes again before the cooldown of the Vote System Configuration is over (always, when the cooldown is 0). Leave empty for no message.")
+    val blockedMessage: Var<String> = ConstVar("<red>You cannot vote again yet.</red>"),
     @Help("Artifact storing vote data")
     val data: Ref<VoteDataEntry> = emptyRef(),
 ) : ManifestEntry, org.bukkit.event.Listener {

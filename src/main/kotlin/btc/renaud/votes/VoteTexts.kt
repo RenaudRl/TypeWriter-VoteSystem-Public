@@ -10,16 +10,16 @@ import com.typewritermc.engine.paper.snippets.snippet
 private const val PATH = "content.vote."
 
 private val usageText by snippet(
-    PATH + "usage", "Usage: /tw vote <definition> <option> [target]",
+    PATH + "usage", "<gray>Usage: /tw vote <definition> <option> [target]</gray>",
     "Answer to /tw vote with no definition. MiniMessage: a tag that is not a known one is shown as written.",
 )
 private val optionUnavailableText by snippet(
-    PATH + "option_unavailable", "Option {option} is not available for {definition}.",
+    PATH + "option_unavailable", "<red>Option {option} is not available for {definition}.</red>",
     "Answer when the option number typed does not exist in the poll. {option} is the number typed, {definition} the id of the poll.",
 )
 private val alreadyVotedText by snippet(
-    PATH + "already_voted", "{player} has already voted in {definition}.",
-    "Answer when the voter cannot vote again (a first vote is final, or the cooldown of the Vote System Configuration entry is not over). {player} is the voter, {definition} the id of the poll.",
+    PATH + "already_voted", "<red>{player} cannot vote in {definition} yet.</red>",
+    "Answer when the voter cannot vote again: a first vote is final, or the cooldown of the Vote System Configuration entry is not over. {player} is the voter, {definition} the id of the poll.",
 )
 private val castOptionFallbackText by snippet(
     PATH + "cast_option_fallback", "option {number}",
@@ -38,11 +38,11 @@ private val recordedForSelfText by snippet(
     "Sent to a player who voted for themselves, after the message they already get about their own vote. {definition} is the id of the poll, {option} the text of the option chosen.",
 )
 private val castFailedText by snippet(
-    PATH + "cast_failed", "Unable to register the vote for {player} in {definition}.",
-    "Answer when the vote was refused (poll closed, no data entry, option out of range). {player} is the voter, {definition} the id of the poll.",
+    PATH + "cast_failed", "<red>Unable to register the vote for {player} in {definition}.</red>",
+    "Answer when the vote was refused for a reason with no text of its own: no data entry, option out of range, or a closed poll whose closing message is empty. {player} is the voter, {definition} the id of the poll.",
 )
 private val resetDoneText by snippet(
-    PATH + "reset_done", "Votes reset for {definition}.",
+    PATH + "reset_done", "<green>Votes reset for {definition}.</green>",
     "Answer to /tw vote reset <definition>. {definition} is the id of the poll.",
 )
 private val noDefinitionsText by snippet(

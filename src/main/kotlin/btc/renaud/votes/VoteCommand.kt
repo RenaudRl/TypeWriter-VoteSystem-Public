@@ -2,6 +2,7 @@ package btc.renaud.votes
 
 import btc.renaud.votes.command.entryCompat
 import btc.renaud.votes.entries.manifest.VoteDefinitionEntry
+import btc.renaud.votes.services.VoteOutcome
 import btc.renaud.votes.services.VoteService
 import com.typewritermc.core.extension.annotations.TypewriterCommand
 import com.typewritermc.engine.paper.command.dsl.CommandTree
@@ -9,7 +10,9 @@ import com.typewritermc.engine.paper.command.dsl.executePlayerOrTarget
 import com.typewritermc.engine.paper.command.dsl.int
 import com.typewritermc.engine.paper.command.dsl.sender
 import com.typewritermc.engine.paper.command.dsl.withPermission
+import com.typewritermc.engine.paper.extensions.placeholderapi.parsePlaceholders
 import com.typewritermc.engine.paper.utils.msg
+import com.typewritermc.engine.paper.utils.sendMini
 import org.koin.java.KoinJavaComponent
 
 private val voteService: VoteService
@@ -34,23 +37,27 @@ fun CommandTree.voteCommand() = literal("vote") {
                     return@executePlayerOrTarget
                 }
 
-                if (voteService.hasVoted(voter, definition)) {
-                    sender.msg(VoteTexts.alreadyVoted(voter.name, definition.id))
-                    return@executePlayerOrTarget
-                }
-
-                if (voteService.vote(voter, definition, index)) {
-                    val label = voteService.optionText(definition, index, voter).ifBlank {
-                        VoteTexts.castOptionFallback(index)
+                val outcome = voteService.vote(voter, definition, index)
+                when (outcome) {
+                    VoteOutcome.ACCEPTED -> {
+                        val label = voteService.optionText(definition, index, voter).ifBlank {
+                            VoteTexts.castOptionFallback(index)
+                        }
+                        voter.msg(VoteTexts.recordedForVoter(definition.id, label))
+                        if (sender != voter) {
+                            sender.msg(VoteTexts.recordedByOther(voter.name, definition.id, label))
+                        } else {
+                            sender.msg(VoteTexts.recordedForSelf(definition.id, label))
+                        }
                     }
-                    voter.msg(VoteTexts.recordedForVoter(definition.id, label))
-                    if (sender != voter) {
-                        sender.msg(VoteTexts.recordedByOther(voter.name, definition.id, label))
-                    } else {
-                        sender.msg(VoteTexts.recordedForSelf(definition.id, label))
+                    VoteOutcome.BLOCKED -> sender.msg(VoteTexts.alreadyVoted(voter.name, definition.id))
+                    VoteOutcome.CLOSED -> {
+                        // The poll's own closing message when it has one, so the staff member sees what the voter would.
+                        val closed = voteService.refusalText(definition, outcome, voter)
+                        if (closed.isBlank()) sender.msg(VoteTexts.castFailed(voter.name, definition.id)) else sender.sendMini(closed.parsePlaceholders(voter))
                     }
-                } else {
-                    sender.msg(VoteTexts.castFailed(voter.name, definition.id))
+                    VoteOutcome.OPTION_UNAVAILABLE, VoteOutcome.NO_DATA ->
+                        sender.msg(VoteTexts.castFailed(voter.name, definition.id))
                 }
             }
         }
